@@ -14,8 +14,8 @@ for i in range(96):
     Q.append([0.000000, 0.000000, 0.000000])
 
 E: float = 0.15 #Se for usar o decay, é bom ter um E inicial alto, tipo 0.5
-E_minimo: float = 0.20
-decay: float = 0.999 #Decai 0.3% por loop
+E_minimo: float = 0.2
+decay: float = 1 - 10e-5
 
 # Colocar os caminho relativos para seus txts
 path = {
@@ -36,7 +36,7 @@ def carregar_tabela():
 def escrever_E():
     global E
     with open(path['E'], 'w') as file:
-        file.write(f'{E:.2f}')
+        file.write(f'{E:.4f}')
 
 def carregar_E():
     global E
@@ -44,7 +44,7 @@ def carregar_E():
         E = float(file.read())
 
 def random_search(estado_atual):
-    return choice([0, 1, 2])
+    return choice([0, 1, 2, 2, 2])
 
 def Egreedy(estado_atual):
     global E
@@ -72,8 +72,8 @@ def treinar(algoritmo, n_iteracoes):
     carregar_E()
     estado: int = 0
     ação: int
-    alpha = 0.1
-    gamma = 0.5
+    alpha = 0.05
+    gamma = 0.7
     i = 0
     print(f"rodada 1")
     while (i < n_iteracoes):
@@ -85,13 +85,14 @@ def treinar(algoritmo, n_iteracoes):
         estado = novo_estado
         if (r < -20) or (r > 0):
             i += 1
-            escrever_tabela()
             escrever_E()
-            print(f"rodada {i+1}")
+            print(f"E: {E:.2f}")
+            escrever_tabela()
+            if i < n_iteracoes: print(f"rodada {i+1}")
 
     #Fecha a conexão com o jogo
     socket.close()
 
-treinar(Egreedy_decay, 100)
+treinar(Egreedy_decay, 1500)
 
 
