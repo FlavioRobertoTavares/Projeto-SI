@@ -2,7 +2,8 @@ import connection as game
 import subprocess
 import time
 import os
-from random import choice
+from random import choice, uniform
+import numpy as np
 
 #Executa o jogo de forma automatica no Windowns;
 #pasta = os.path.dirname(os.path.abspath(__file__));
@@ -13,56 +14,71 @@ from random import choice
 
 #Inicia o jogo
 #start = input("Aperte enter para iniciar o algoritmo")
-pular, esquerda, direita, socket = "jump", "left", "right", game.connect(2037)
+socket = game.connect(2037)
 
-q_table = []
+Q = []
 
 for i in range(96):
-    q_table.append([0.000000, 0.000000, 0.000000])
+    Q.append([0.000000, 0.000000, 0.000000])
 
 # Colocar o caminho relativo para seu txt
 path = 'Projeto-SI/Qlearning/resultado.txt'
 
 def escrever_tabela():
     with open(path, "w") as file:
-        for line in q_table:
+        for line in Q:
             file.write(f"{line[0]:.6f} {line[1]:.6f} {line[2]:.6f}\n")
 
 def carregar_tabela():
     with open(path, 'r') as file:
         for line in range(96):
-            q_table[line] = [float(x) for x in file.readline().split(" ")]
+            Q[line] = [float(x) for x in file.readline().split(" ")]
 
-print("TABLE\n\n\n", q_table, "\n\n\n")
-#Inicio do Qlearning
-n_iteracoes: int = 1000
-plataforma: int
-direção: int
-estado: int = 0
-ação: int
-alpha = 0.1
-gamma = 0.5
 
-ac = {
-    "left" : 0,
-    "right" : 1,
-    "jump" : 2,
-}
+E: float = 0.15 #Se for usar o decay, é bom ter um E inicial alto, tipo 0.5
+E_minimo: float = 0.05
+decay: float = 0.997 #Decai 0.3% por loop
 
-for i in range(n_iteracoes):
-    comando = choice([esquerda, direita, pular])
-    string_estado, r = game.get_state_reward(socket, comando)
-    ação = ac[comando]
-    plataforma = int(string_estado[2:7], 2)
-    direção = int(string_estado[7:9], 2)
-    novo_estado = int(string_estado[2:9], 2)
-    q_table[estado][ação] += alpha * (r + gamma * (max(q_table[novo_estado][0],
-                                                        q_table[novo_estado][1],
-                                                        q_table[novo_estado][2])))
-    estado = novo_estado
-escrever_tabela()
-print(q_table)
-socket.close()
+def Egreedy(estado_atual):
+    global E
+    p = uniform(0.00, 1.00)
 
-#Fecha a conexão com o jogo
-socket.close()
+    if p > E:
+            #(1-E)% de ser a melhor
+            acao_int = np.argmax(Q[estado_atual])
+    else:
+            #E% de chance de ser random
+            acao_int = choice([0, 1, 2])
+    
+    #Usa aquele dicionario pra transformar o int em str
+    return acao_int
+
+def Egreedy_decay(estado_atual):
+    global E
+    acao = Egreedy(estado_atual)
+    E = max(E_minimo, E*decay) #diminui a chance de escolher algo random da proxima vez
+    return acao
+
+carregar_tabela()
+
+def treinar(n_iteracoes):
+    estado: int = 0
+    ação: int
+    alpha = 0.1
+    gamma = 0.5
+    for _ in range(n_iteracoes):
+        ação = Egreedy_decay(estado)
+        comando = ["left", "right", "jump"][ação]
+        string_estado, r = game.get_state_reward(socket, comando)
+        novo_estado = int(string_estado[2:9], 2)
+        Q[estado][ação] += alpha * (r + gamma * (max(Q[novo_estado])) - Q[estado][ação])
+        estado = novo_estado
+        if estado == 0: escrever_tabela()
+    escrever_tabela()
+
+    #Fecha a conexão com o jogo
+    socket.close()
+
+treinar(100)
+
+
