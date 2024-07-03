@@ -3,7 +3,8 @@ import subprocess
 import time
 import os
 from random import choice, uniform
-from numpy import argmax
+from numpy import argmax, sum, array, exp
+from numpy.random import choice as choose
 
 #Inicia o jogo
 socket = game.connect(2037)
@@ -16,11 +17,12 @@ for i in range(96):
 E: float = 0.15 #Se for usar o decay, é bom ter um E inicial alto, tipo 0.5
 E_minimo: float = 0.2
 decay: float = 1 - 10e-5
+Temperatura : float = 0.1 #Quanto menor o valor de temperatura, maior a chance de escolher a melhor ação
 
 # Colocar os caminho relativos para seus txts
 path = {
-    'Q' : 'Projeto-SI/Qlearning/resultado.txt',
-    'E' : 'Projeto-SI/Qlearning/E.txt'
+    'Q' : 'Qlearning/resultado.txt',
+    'E' : 'Qlearning/E.txt'
 }
 
 def escrever_tabela():
@@ -66,6 +68,19 @@ def Egreedy_decay(estado_atual):
     E = max(E_minimo, E*decay) #diminui a chance de escolher algo random da proxima vez
     return acao
 
+def Softmax(estado_atual):
+    Qt = array(Q[estado_atual])
+    possiveis_valores = exp(Qt / Temperatura)
+    valor_total = sum(possiveis_valores)
+    probabilidades = possiveis_valores / valor_total
+
+    #Teoricamente essa linha não precisa existir, mas caso exista algum estado que nunca foi explorado, aka [0, 0, 0], teriamos erro nas probablidades pois teria divisão por 0
+    if valor_total == 0: return Egreedy(estado_atual)
+    
+    acao_int = choose([0, 1, 2], p=probabilidades)
+    return acao_int
+
+
 carregar_tabela()
 
 def treinar(algoritmo, n_iteracoes):
@@ -93,6 +108,6 @@ def treinar(algoritmo, n_iteracoes):
     #Fecha a conexão com o jogo
     socket.close()
 
-treinar(Egreedy_decay, 1500)
+treinar(Softmax, 20)
 
 
