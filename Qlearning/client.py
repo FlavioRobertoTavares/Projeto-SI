@@ -1,7 +1,7 @@
 import connection as game
 import subprocess
 import time
-import os
+import os   
 from random import choice, uniform
 from numpy import argmax
 
@@ -13,9 +13,9 @@ Q = []
 for i in range(96):
     Q.append([0.000000, 0.000000, 0.000000])
 
-E: float = 0.15 #Se for usar o decay, é bom ter um E inicial alto, tipo 0.5
-E_minimo: float = 0.2
-decay: float = 1 - 10e-5
+E: float #Se for usar o decay, é bom ter um E inicial alto, tipo 0.5
+E_minimo: float = 0.15
+decay: float = 1 - 3*10e-6
 
 # Colocar os caminho relativos para seus txts
 path = {
@@ -72,8 +72,8 @@ def treinar(algoritmo, n_iteracoes):
     carregar_E()
     estado: int = 0
     ação: int
-    alpha = 0.05
-    gamma = 0.7
+    alpha = 0.1
+    gamma = 0.96
     i = 0
     print(f"rodada 1")
     while (i < n_iteracoes):
@@ -84,15 +84,17 @@ def treinar(algoritmo, n_iteracoes):
         Q[estado][ação] += alpha * (r + gamma * (max(Q[novo_estado])) - Q[estado][ação])
         estado = novo_estado
         if (r < -20) or (r > 0):
+            if r > 0: print("YAAAAAY!!!!!!!!!!!")
             i += 1
-            escrever_E()
-            print(f"E: {E:.2f}")
-            escrever_tabela()
+            if i % 4 == 3:
+                escrever_tabela()
+                escrever_E()
+            print(f"E: {E:.4f}")
             if i < n_iteracoes: print(f"rodada {i+1}")
 
     #Fecha a conexão com o jogo
     socket.close()
 
-treinar(Egreedy_decay, 1500)
+treinar(Egreedy_decay, 50000)
 
 
