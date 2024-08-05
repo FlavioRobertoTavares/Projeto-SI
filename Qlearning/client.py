@@ -46,7 +46,11 @@ def carregar_E():
         E = float(file.read())
 
 def random_search(estado_atual):
-    return choice([0, 1, 2, 2, 2])
+    return choice([0, 1, 2])
+
+def Win(estado_atual):
+    acao_int = Q[estado_atual].index(max(Q[estado_atual]))
+    return acao_int
 
 def Egreedy(estado_atual):
     global E
@@ -68,18 +72,30 @@ def Egreedy_decay(estado_atual):
     E = max(E_minimo, E*decay) #diminui a chance de escolher algo random da proxima vez
     return acao
 
+def Tratar(q):
+
+    index = q.index(min(q))
+    deltas = [abs(q[index] - q[x]) for x in range (3) if x != index]
+
+    for i in range (3):
+        if i == index:
+            q[i] = abs(q[i])
+        
+        else:
+            q[i] = abs(q[index]) + deltas.pop(0)
+    
+    return q
+
 def Softmax(estado_atual):
-    Qt = array(Q[estado_atual])
-    possiveis_valores = exp(Qt / Temperatura)
+    Qt = Tratar(Q[estado_atual])
+    if(sum(Qt) == 0): return random_search(estado_atual) #caso seja a primeira vez naquela linha da qtable
+
+    possiveis_valores = [(x*x)/Temperatura for x in Qt]
     valor_total = sum(possiveis_valores)
     probabilidades = possiveis_valores / valor_total
-
-    #Teoricamente essa linha não precisa existir, mas caso exista algum estado que nunca foi explorado, aka [0, 0, 0], teriamos erro nas probablidades pois teria divisão por 0
-    if valor_total == 0: return Egreedy(estado_atual)
     
     acao_int = choose([0, 1, 2], p=probabilidades)
     return acao_int
-
 
 carregar_tabela()
 
@@ -110,6 +126,6 @@ def treinar(algoritmo, n_iteracoes):
     #Fecha a conexão com o jogo
     socket.close()
 
-treinar(Softmax, 20)
+treinar(Win, 5)
 
 
